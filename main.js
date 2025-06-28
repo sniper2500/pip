@@ -288,20 +288,21 @@ function initializeApp() {
         <div class="profile-section">
           <div class="profile-header">
             <div class="profile-title-section">
-              <h1>Civil Survey Profile</h1>
-              <p>Professional Cross-Sectional Drawing with Accurate Pipe & Excavation Thickness</p>
+              <h1>Civil Survey Profile Drawing</h1>
+              <p>Professional Pipeline Cross-Section with Accurate Dimensions</p>
               <div class="profile-project-info">
                 <span>Section: ${parameters.sectionName}</span>
                 <span>Length: ${parameters.totalLength}m</span>
                 <span>Pipe: Ø${parameters.pipeSize}mm</span>
                 <span>Slope: ${parameters.slope.toFixed(3)}%</span>
+                <span>Interval: ${parameters.stationInterval}m</span>
               </div>
             </div>
             <div class="profile-surveyor-info">
               <div class="surveyor-badge">
                 <div class="surveyor-name">${surveyorInfo.name}</div>
                 <div class="surveyor-title">${surveyorInfo.title}</div>
-                <div class="surveyor-contact">${surveyorInfo.phone}</div>
+                <div class="surveyor-contact">📞 ${surveyorInfo.phone}</div>
               </div>
             </div>
           </div>
@@ -316,70 +317,74 @@ function initializeApp() {
               <div class="legend-items">
                 <div class="legend-item">
                   <div class="legend-symbol ground-line"></div>
-                  <span><strong>Ground Level (GL)</strong> - Natural ground surface from structure cover levels</span>
+                  <span><strong>Ground Level</strong> - Structure Cover Levels</span>
                 </div>
                 <div class="legend-item">
                   <div class="legend-symbol pipe-line"></div>
-                  <span><strong>Pipe Invert & Top</strong> - Ø${parameters.pipeSize}mm pipe with actual thickness</span>
+                  <span><strong>Pipe Invert</strong> - Bottom of Pipe (Ø${parameters.pipeSize}mm)</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-symbol" style="background: #dc2626; height: 8px;"></div>
+                  <span><strong>Pipe Body</strong> - Full Pipe Thickness</span>
                 </div>
                 <div class="legend-item">
                   <div class="legend-symbol excavation-line"></div>
-                  <span><strong>Excavation Zone</strong> - 20cm below invert level with boundaries</span>
+                  <span><strong>Excavation Level</strong> - Excavation Boundaries</span>
                 </div>
                 <div class="legend-item">
                   <div class="manhole-symbol"></div>
-                  <span><strong>Manhole</strong> - Circular structure with shaft</span>
+                  <span><strong>Manhole</strong> - Access Structure</span>
                 </div>
                 <div class="legend-item">
                   <div class="ic-symbol"></div>
-                  <span><strong>IC Chamber</strong> - Rectangular inspection chamber</span>
+                  <span><strong>IC Chamber</strong> - Inspection Chamber</span>
                 </div>
               </div>
             </div>
-
+            
             <div class="profile-specifications">
               <h3>Technical Specifications</h3>
               <div class="spec-grid">
                 <div class="spec-item">
-                  <span>Horizontal Scale:</span>
-                  <span>1:500</span>
+                  <span>Pipeline Gradient:</span>
+                  <span>${parameters.slope.toFixed(3)}%</span>
                 </div>
                 <div class="spec-item">
-                  <span>Vertical Scale:</span>
-                  <span>1:100</span>
+                  <span>Pipe Diameter:</span>
+                  <span>Ø${parameters.pipeSize}mm</span>
                 </div>
                 <div class="spec-item">
-                  <span>Pipe Material:</span>
-                  <span>Concrete/PVC</span>
+                  <span>Total Drop:</span>
+                  <span>${(parameters.startInvert - parameters.endInvert).toFixed(3)}m</span>
                 </div>
                 <div class="spec-item">
-                  <span>Excavation Depth:</span>
-                  <span>200mm below IL</span>
+                  <span>Start Invert:</span>
+                  <span>${parameters.startInvert.toFixed(3)}m</span>
                 </div>
                 <div class="spec-item">
-                  <span>Drawing Standard:</span>
-                  <span>Civil 3D Compatible</span>
+                  <span>End Invert:</span>
+                  <span>${parameters.endInvert.toFixed(3)}m</span>
                 </div>
                 <div class="spec-item">
-                  <span>Coordinate System:</span>
-                  <span>Local Grid</span>
+                  <span>Analysis Interval:</span>
+                  <span>${parameters.stationInterval}m</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="profile-actions">
-            <button class="profile-action-btn primary" onclick="exportToCAD()">
-              <span class="btn-icon">📐</span>
-              Export to CAD (DXF)
-            </button>
-            <button class="profile-action-btn secondary" onclick="printProfile()">
+            <button class="profile-action-btn primary" onclick="printProfile()">
               <span class="btn-icon">🖨️</span>
               Print Profile
             </button>
-            <button class="profile-action-btn tertiary" onclick="saveProfileImage()">
+            <button class="profile-action-btn secondary" onclick="exportProfile()">
               <span class="btn-icon">💾</span>
-              Save as Image
+              Export PNG
+            </button>
+            <button class="profile-action-btn tertiary" onclick="refreshProfile()">
+              <span class="btn-icon">🔄</span>
+              Refresh Drawing
             </button>
           </div>
         </div>
@@ -436,11 +441,11 @@ function switchTab(tabName) {
   } else if (tabName === 'table') {
     refreshAnalysisTable();
   } else if (tabName === 'profile') {
-    drawCivilProfile();
+    setTimeout(() => drawProfile(), 100); // Small delay to ensure canvas is rendered
   }
 }
 
-function drawCivilProfile() {
+function drawProfile() {
   const canvas = document.getElementById('profileCanvas');
   if (!canvas) return;
   
@@ -456,105 +461,123 @@ function drawCivilProfile() {
   const drawWidth = width - 2 * margin;
   const drawHeight = height - 2 * margin;
   
-  // Calculate scales
-  const horizontalScale = drawWidth / parameters.totalLength;
-  const minElevation = Math.min(...structures.map(s => s.excavation)) - 0.5;
-  const maxElevation = Math.max(...structures.map(s => s.coverLevel)) + 0.5;
+  // Calculate elevation range using structure cover levels as ground
+  const sortedStructures = [...structures].sort((a, b) => a.station - b.station);
+  const minGroundLevel = Math.min(...sortedStructures.map(s => s.coverLevel));
+  const maxGroundLevel = Math.max(...sortedStructures.map(s => s.coverLevel));
+  
+  // Calculate excavation levels
+  const excavationLevels = [];
+  for (let station = 0; station <= parameters.totalLength; station += parameters.stationInterval) {
+    const distanceFromStart = station;
+    const drop = distanceFromStart * (parameters.slope / 100);
+    const invertAtStation = parameters.startInvert - drop;
+    const excavationLevel = invertAtStation - 0.2; // 20cm below invert
+    excavationLevels.push(excavationLevel);
+  }
+  
+  const minExcavation = Math.min(...excavationLevels);
+  const minElevation = Math.min(minExcavation, Math.min(...structures.map(s => s.excavation))) - 0.5;
+  const maxElevation = Math.max(maxGroundLevel, Math.max(...structures.map(s => s.coverLevel))) + 0.5;
+  
   const elevationRange = maxElevation - minElevation;
-  const verticalScale = drawHeight / elevationRange;
   
-  // Helper function to convert coordinates
-  function toCanvasX(station) {
-    return margin + (station * horizontalScale);
-  }
-  
-  function toCanvasY(elevation) {
-    return margin + drawHeight - ((elevation - minElevation) * verticalScale);
-  }
+  // Scale functions
+  const scaleX = (station) => margin + (station / parameters.totalLength) * drawWidth;
+  const scaleY = (elevation) => margin + ((maxElevation - elevation) / elevationRange) * drawHeight;
   
   // Draw grid
-  drawGrid(ctx, margin, drawWidth, drawHeight, horizontalScale, verticalScale, minElevation, maxElevation);
+  drawGrid(ctx, margin, drawWidth, drawHeight, minElevation, maxElevation, parameters.totalLength);
   
-  // Draw ground level (interpolated from structure cover levels)
-  drawGroundLevel(ctx, toCanvasX, toCanvasY);
+  // Draw ground level line (interpolated between structure cover levels)
+  drawGroundLevel(ctx, sortedStructures, scaleX, scaleY);
   
-  // Draw excavation area
-  drawExcavationArea(ctx, toCanvasX, toCanvasY);
+  // Draw excavation area with thickness
+  drawExcavationArea(ctx, scaleX, scaleY, minElevation, maxElevation);
   
-  // Draw pipe with thickness
-  drawPipeWithThickness(ctx, toCanvasX, toCanvasY);
+  // Draw pipe with actual thickness
+  drawPipeWithThickness(ctx, scaleX, scaleY);
   
   // Draw structures
-  drawStructures(ctx, toCanvasX, toCanvasY);
+  drawStructures(ctx, sortedStructures, scaleX, scaleY);
   
   // Draw annotations
-  drawAnnotations(ctx, toCanvasX, toCanvasY, margin, drawHeight);
+  drawAnnotations(ctx, scaleX, scaleY, minElevation, maxElevation);
 }
 
-function drawGrid(ctx, margin, drawWidth, drawHeight, horizontalScale, verticalScale, minElevation, maxElevation) {
+function drawGrid(ctx, margin, drawWidth, drawHeight, minElevation, maxElevation, totalLength) {
   ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
-  ctx.setLineDash([2, 2]);
+  ctx.font = '12px Arial';
+  ctx.fillStyle = '#64748b';
   
-  // Vertical grid lines (every 5m)
-  for (let station = 0; station <= parameters.totalLength; station += 5) {
-    const x = margin + (station * horizontalScale);
+  // Vertical grid lines (stations)
+  const stationStep = parameters.stationInterval;
+  for (let station = 0; station <= totalLength; station += stationStep) {
+    const x = margin + (station / totalLength) * drawWidth;
+    
+    // Grid line
     ctx.beginPath();
     ctx.moveTo(x, margin);
     ctx.lineTo(x, margin + drawHeight);
     ctx.stroke();
+    
+    // Station label
+    ctx.fillText(`${station}m`, x - 15, margin + drawHeight + 20);
   }
   
-  // Horizontal grid lines (every 0.5m elevation)
-  for (let elevation = Math.floor(minElevation * 2) / 2; elevation <= Math.ceil(maxElevation * 2) / 2; elevation += 0.5) {
-    const y = margin + drawHeight - ((elevation - minElevation) * verticalScale);
+  // Horizontal grid lines (elevations)
+  const elevationRange = maxElevation - minElevation;
+  const elevationStep = Math.max(0.5, Math.round(elevationRange / 10 * 2) / 2); // Round to nearest 0.5m
+  
+  for (let elev = Math.ceil(minElevation / elevationStep) * elevationStep; elev <= maxElevation; elev += elevationStep) {
+    const y = margin + ((maxElevation - elev) / elevationRange) * drawHeight;
+    
+    // Grid line
     ctx.beginPath();
     ctx.moveTo(margin, y);
     ctx.lineTo(margin + drawWidth, y);
     ctx.stroke();
+    
+    // Elevation label
+    ctx.fillText(`${elev.toFixed(1)}m`, 10, y + 4);
   }
   
-  ctx.setLineDash([]);
+  // Draw border
+  ctx.strokeStyle = '#374151';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(margin, margin, drawWidth, drawHeight);
 }
 
-function drawGroundLevel(ctx, toCanvasX, toCanvasY) {
+function drawGroundLevel(ctx, sortedStructures, scaleX, scaleY) {
+  if (sortedStructures.length < 2) return;
+  
   ctx.strokeStyle = '#8b5cf6';
   ctx.lineWidth = 3;
   ctx.setLineDash([]);
   
-  // Sort structures by station
-  const sortedStructures = [...structures].sort((a, b) => a.station - b.station);
-  
   ctx.beginPath();
   
   // Interpolate ground level between structures
-  for (let station = 0; station <= parameters.totalLength; station += 0.5) {
+  for (let station = 0; station <= parameters.totalLength; station += 1) {
     let groundLevel;
     
-    if (station <= sortedStructures[0].station) {
+    // Find the two structures that bracket this station
+    const beforeStructure = sortedStructures.filter(s => s.station <= station).pop();
+    const afterStructure = sortedStructures.find(s => s.station > station);
+    
+    if (!beforeStructure) {
       groundLevel = sortedStructures[0].coverLevel;
-    } else if (station >= sortedStructures[sortedStructures.length - 1].station) {
+    } else if (!afterStructure) {
       groundLevel = sortedStructures[sortedStructures.length - 1].coverLevel;
     } else {
-      // Find the two structures to interpolate between
-      let beforeStructure = sortedStructures[0];
-      let afterStructure = sortedStructures[1];
-      
-      for (let i = 0; i < sortedStructures.length - 1; i++) {
-        if (station >= sortedStructures[i].station && station <= sortedStructures[i + 1].station) {
-          beforeStructure = sortedStructures[i];
-          afterStructure = sortedStructures[i + 1];
-          break;
-        }
-      }
-      
-      // Linear interpolation
+      // Linear interpolation between structures
       const ratio = (station - beforeStructure.station) / (afterStructure.station - beforeStructure.station);
       groundLevel = beforeStructure.coverLevel + ratio * (afterStructure.coverLevel - beforeStructure.coverLevel);
     }
     
-    const x = toCanvasX(station);
-    const y = toCanvasY(groundLevel);
+    const x = scaleX(station);
+    const y = scaleY(groundLevel);
     
     if (station === 0) {
       ctx.moveTo(x, y);
@@ -566,778 +589,227 @@ function drawGroundLevel(ctx, toCanvasX, toCanvasY) {
   ctx.stroke();
 }
 
-function drawExcavationArea(ctx, toCanvasX, toCanvasY) {
-  // Draw excavation area (filled)
+function drawExcavationArea(ctx, scaleX, scaleY, minElevation, maxElevation) {
+  // Draw excavation area as filled polygon
   ctx.fillStyle = 'rgba(245, 158, 11, 0.2)';
   ctx.strokeStyle = '#f59e0b';
   ctx.lineWidth = 2;
   ctx.setLineDash([5, 5]);
   
-  ctx.beginPath();
+  // Calculate excavation points
+  const excavationPoints = [];
+  const groundPoints = [];
   
-  // Top boundary (excavation level)
-  for (let station = 0; station <= parameters.totalLength; station += 0.5) {
+  for (let station = 0; station <= parameters.totalLength; station += 1) {
     const distanceFromStart = station;
     const drop = distanceFromStart * (parameters.slope / 100);
     const invertAtStation = parameters.startInvert - drop;
     const excavationLevel = invertAtStation - 0.2; // 20cm below invert
     
-    const x = toCanvasX(station);
-    const y = toCanvasY(excavationLevel);
+    // Ground level interpolation
+    const sortedStructures = [...structures].sort((a, b) => a.station - b.station);
+    const beforeStructure = sortedStructures.filter(s => s.station <= station).pop();
+    const afterStructure = sortedStructures.find(s => s.station > station);
     
-    if (station === 0) {
-      ctx.moveTo(x, y);
+    let groundLevel;
+    if (!beforeStructure) {
+      groundLevel = sortedStructures[0].coverLevel;
+    } else if (!afterStructure) {
+      groundLevel = sortedStructures[sortedStructures.length - 1].coverLevel;
     } else {
-      ctx.lineTo(x, y);
+      const ratio = (station - beforeStructure.station) / (afterStructure.station - beforeStructure.station);
+      groundLevel = beforeStructure.coverLevel + ratio * (afterStructure.coverLevel - beforeStructure.coverLevel);
     }
+    
+    excavationPoints.push({ x: scaleX(station), y: scaleY(excavationLevel) });
+    groundPoints.push({ x: scaleX(station), y: scaleY(groundLevel) });
   }
   
-  // Right boundary
-  const endExcavationLevel = parameters.endInvert - 0.2;
-  ctx.lineTo(toCanvasX(parameters.totalLength), toCanvasY(endExcavationLevel - 0.3));
+  // Fill excavation area
+  ctx.beginPath();
+  ctx.moveTo(excavationPoints[0].x, excavationPoints[0].y);
   
-  // Bottom boundary
-  ctx.lineTo(toCanvasX(0), toCanvasY(parameters.startInvert - 0.5));
+  // Draw excavation bottom
+  for (let i = 1; i < excavationPoints.length; i++) {
+    ctx.lineTo(excavationPoints[i].x, excavationPoints[i].y);
+  }
   
-  // Left boundary
-  ctx.lineTo(toCanvasX(0), toCanvasY(parameters.startInvert - 0.2));
+  // Draw up to ground level
+  for (let i = groundPoints.length - 1; i >= 0; i--) {
+    ctx.lineTo(groundPoints[i].x, groundPoints[i].y);
+  }
   
   ctx.closePath();
   ctx.fill();
-  ctx.stroke();
   
-  ctx.setLineDash([]);
+  // Draw excavation boundary lines
+  ctx.beginPath();
+  ctx.moveTo(excavationPoints[0].x, excavationPoints[0].y);
+  for (let i = 1; i < excavationPoints.length; i++) {
+    ctx.lineTo(excavationPoints[i].x, excavationPoints[i].y);
+  }
+  ctx.stroke();
 }
 
-function drawPipeWithThickness(ctx, toCanvasX, toCanvasY) {
-  const pipeRadius = (parameters.pipeSize / 1000) / 2; // Convert mm to m and get radius
+function drawPipeWithThickness(ctx, scaleX, scaleY) {
+  const pipeRadius = parameters.pipeSize / 2000; // Convert mm to meters and get radius
   
-  // Draw pipe body (filled area)
-  ctx.fillStyle = 'rgba(220, 38, 38, 0.3)';
-  ctx.beginPath();
+  // Draw pipe as filled area showing actual thickness
+  ctx.fillStyle = '#dc2626';
+  ctx.strokeStyle = '#b91c1c';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
   
-  // Top of pipe line
-  for (let station = 0; station <= parameters.totalLength; station += 0.5) {
+  // Calculate pipe invert and top points
+  const invertPoints = [];
+  const topPoints = [];
+  
+  for (let station = 0; station <= parameters.totalLength; station += 1) {
     const distanceFromStart = station;
     const drop = distanceFromStart * (parameters.slope / 100);
     const invertAtStation = parameters.startInvert - drop;
     const topOfPipe = invertAtStation + (parameters.pipeSize / 1000);
     
-    const x = toCanvasX(station);
-    const y = toCanvasY(topOfPipe);
-    
-    if (station === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
+    invertPoints.push({ x: scaleX(station), y: scaleY(invertAtStation) });
+    topPoints.push({ x: scaleX(station), y: scaleY(topOfPipe) });
   }
   
-  // Right end cap
-  ctx.lineTo(toCanvasX(parameters.totalLength), toCanvasY(parameters.endInvert));
+  // Fill pipe body
+  ctx.beginPath();
+  ctx.moveTo(invertPoints[0].x, invertPoints[0].y);
   
-  // Bottom of pipe line (invert)
-  for (let station = parameters.totalLength; station >= 0; station -= 0.5) {
-    const distanceFromStart = station;
-    const drop = distanceFromStart * (parameters.slope / 100);
-    const invertAtStation = parameters.startInvert - drop;
-    
-    const x = toCanvasX(station);
-    const y = toCanvasY(invertAtStation);
-    
-    ctx.lineTo(x, y);
+  // Draw invert line
+  for (let i = 1; i < invertPoints.length; i++) {
+    ctx.lineTo(invertPoints[i].x, invertPoints[i].y);
+  }
+  
+  // Draw to top of pipe
+  for (let i = topPoints.length - 1; i >= 0; i--) {
+    ctx.lineTo(topPoints[i].x, topPoints[i].y);
   }
   
   ctx.closePath();
   ctx.fill();
   
   // Draw pipe invert line (bottom)
-  ctx.strokeStyle = '#dc2626';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  
-  for (let station = 0; station <= parameters.totalLength; station += 0.5) {
-    const distanceFromStart = station;
-    const drop = distanceFromStart * (parameters.slope / 100);
-    const invertAtStation = parameters.startInvert - drop;
-    
-    const x = toCanvasX(station);
-    const y = toCanvasY(invertAtStation);
-    
-    if (station === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  }
-  
-  ctx.stroke();
-  
-  // Draw pipe top line
   ctx.strokeStyle = '#b91c1c';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  
-  for (let station = 0; station <= parameters.totalLength; station += 0.5) {
-    const distanceFromStart = station;
-    const drop = distanceFromStart * (parameters.slope / 100);
-    const invertAtStation = parameters.startInvert - drop;
-    const topOfPipe = invertAtStation + (parameters.pipeSize / 1000);
-    
-    const x = toCanvasX(station);
-    const y = toCanvasY(topOfPipe);
-    
-    if (station === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
+  ctx.moveTo(invertPoints[0].x, invertPoints[0].y);
+  for (let i = 1; i < invertPoints.length; i++) {
+    ctx.lineTo(invertPoints[i].x, invertPoints[i].y);
   }
+  ctx.stroke();
   
+  // Draw pipe top line
+  ctx.strokeStyle = '#7f1d1d';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(topPoints[0].x, topPoints[0].y);
+  for (let i = 1; i < topPoints.length; i++) {
+    ctx.lineTo(topPoints[i].x, topPoints[i].y);
+  }
   ctx.stroke();
 }
 
-function drawStructures(ctx, toCanvasX, toCanvasY) {
-  structures.forEach(structure => {
-    const x = toCanvasX(structure.station);
-    const groundY = toCanvasY(structure.coverLevel);
-    const invertY = toCanvasY(structure.invert);
-    const excavationY = toCanvasY(structure.excavation);
+function drawStructures(ctx, sortedStructures, scaleX, scaleY) {
+  sortedStructures.forEach(structure => {
+    const x = scaleX(structure.station);
+    const groundY = scaleY(structure.coverLevel);
+    const invertY = scaleY(structure.invert);
+    const excavationY = scaleY(structure.excavation);
     
-    // Draw structure shaft
+    // Draw structure shaft from ground to excavation
+    ctx.fillStyle = structure.color + '40'; // Semi-transparent
+    ctx.fillRect(x - 15, groundY, 30, excavationY - groundY);
+    
+    // Draw structure outline
     ctx.strokeStyle = structure.color;
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(x, groundY);
-    ctx.lineTo(x, excavationY);
-    ctx.stroke();
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x - 15, groundY, 30, excavationY - groundY);
     
     if (structure.type === 'manhole') {
       // Draw manhole symbol
       ctx.fillStyle = structure.color;
       ctx.beginPath();
-      ctx.arc(x, groundY - 15, 12, 0, 2 * Math.PI);
+      ctx.arc(x, groundY - 10, 12, 0, 2 * Math.PI);
       ctx.fill();
-      
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, groundY - 15, 8, 0, 2 * Math.PI);
       ctx.stroke();
       
-      // Label
-      ctx.fillStyle = '#000';
-      ctx.font = 'bold 12px Arial';
+      // MH text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 10px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(structure.name, x, groundY - 35);
-      
-    } else if (structure.type === 'ic_chamber') {
+      ctx.fillText('MH', x, groundY - 6);
+    } else {
       // Draw IC chamber symbol
       ctx.fillStyle = structure.color;
-      ctx.fillRect(x - 10, groundY - 25, 20, 15);
-      
+      ctx.fillRect(x - 12, groundY - 20, 24, 15);
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
-      ctx.strokeRect(x - 8, groundY - 23, 16, 11);
+      ctx.strokeRect(x - 12, groundY - 20, 24, 15);
       
-      // Label
-      ctx.fillStyle = '#000';
-      ctx.font = 'bold 12px Arial';
+      // IC text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(structure.name, x, groundY - 35);
+      ctx.fillText('IC', x, groundY - 10);
     }
     
-    // Draw elevation labels
+    // Structure name and elevation labels
     ctx.fillStyle = '#374151';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(structure.name, x, groundY - 30);
+    
     ctx.font = '10px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText(`GL: ${structure.coverLevel.toFixed(3)}m`, x + 15, groundY);
-    ctx.fillText(`IL: ${structure.invert.toFixed(3)}m`, x + 15, invertY);
-    ctx.fillText(`EL: ${structure.excavation.toFixed(3)}m`, x + 15, excavationY);
+    ctx.fillText(`GL: ${structure.coverLevel.toFixed(3)}m`, x, groundY - 45);
+    ctx.fillText(`IL: ${structure.invert.toFixed(3)}m`, x, invertY - 5);
+    ctx.fillText(`EL: ${structure.excavation.toFixed(3)}m`, x, excavationY + 15);
   });
 }
 
-function drawAnnotations(ctx, toCanvasX, toCanvasY, margin, drawHeight) {
-  // Draw station markers
-  ctx.fillStyle = '#374151';
-  ctx.font = '12px Arial';
-  ctx.textAlign = 'center';
-  
-  for (let station = 0; station <= parameters.totalLength; station += 5) {
-    const x = toCanvasX(station);
-    ctx.fillText(`${station}m`, x, margin + drawHeight + 20);
-    
-    // Draw tick marks
-    ctx.strokeStyle = '#374151';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x, margin + drawHeight);
-    ctx.lineTo(x, margin + drawHeight + 10);
-    ctx.stroke();
-  }
-  
-  // Draw slope annotation
-  ctx.fillStyle = '#dc2626';
-  ctx.font = 'bold 14px Arial';
-  ctx.textAlign = 'left';
-  ctx.fillText(`Slope: ${parameters.slope.toFixed(3)}%`, margin, margin - 20);
-  
-  // Draw pipe size annotation
-  ctx.fillText(`Pipe: Ø${parameters.pipeSize}mm`, margin + 200, margin - 20);
-  
-  // Draw title
+function drawAnnotations(ctx, scaleX, scaleY, minElevation, maxElevation) {
+  // Draw title and key information
   ctx.fillStyle = '#1e40af';
   ctx.font = 'bold 16px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(`CIVIL SURVEY PROFILE - ${parameters.sectionName}`, toCanvasX(parameters.totalLength / 2), margin - 40);
-}
-
-// CAD Export Functions
-function exportToCAD() {
-  try {
-    const dxfContent = generateDXFContent();
-    downloadFile(dxfContent, `${parameters.sectionName.replace(/[^a-zA-Z0-9]/g, '_')}_Profile.dxf`, 'application/dxf');
-    showNotification('CAD drawing exported successfully as DXF file', 'success');
-  } catch (error) {
-    console.error('Error exporting to CAD:', error);
-    showNotification('Error exporting CAD drawing', 'error');
+  ctx.fillText(`${parameters.sectionName} - Profile Drawing`, scaleX(parameters.totalLength / 2), 30);
+  
+  ctx.font = '12px Arial';
+  ctx.fillText(`Pipe: Ø${parameters.pipeSize}mm | Slope: ${parameters.slope.toFixed(3)}% | Length: ${parameters.totalLength}m`, 
+               scaleX(parameters.totalLength / 2), 50);
+  
+  // Draw slope annotation on the pipe
+  const midStation = parameters.totalLength / 2;
+  const midX = scaleX(midStation);
+  const drop = midStation * (parameters.slope / 100);
+  const invertAtMid = parameters.startInvert - drop;
+  const midY = scaleY(invertAtMid);
+  
+  ctx.fillStyle = '#dc2626';
+  ctx.font = 'bold 11px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${parameters.slope.toFixed(3)}%`, midX, midY - 10);
+  
+  // Draw station markers
+  ctx.fillStyle = '#64748b';
+  ctx.font = '10px Arial';
+  for (let station = 0; station <= parameters.totalLength; station += parameters.stationInterval) {
+    const x = scaleX(station);
+    const y = scaleY(minElevation) + 40;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${station}+000`, x, y);
   }
 }
 
-function generateDXFContent() {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  
-  let dxf = `0
-SECTION
-2
-HEADER
-9
-$ACADVER
-1
-AC1015
-9
-$DWGCODEPAGE
-3
-ANSI_1252
-9
-$INSBASE
-10
-0.0
-20
-0.0
-30
-0.0
-9
-$EXTMIN
-10
-0.0
-20
-${Math.min(...structures.map(s => s.excavation)) - 1.0}
-30
-0.0
-9
-$EXTMAX
-10
-${parameters.totalLength}
-20
-${Math.max(...structures.map(s => s.coverLevel)) + 1.0}
-30
-0.0
-0
-ENDSEC
-0
-SECTION
-2
-TABLES
-0
-TABLE
-2
-LAYER
-5
-2
-330
-0
-100
-AcDbSymbolTable
-70
-4
-0
-LAYER
-5
-10
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-2
-GROUND_LEVEL
-70
-0
-62
-5
-6
-CONTINUOUS
-0
-LAYER
-5
-11
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-2
-PIPE_INVERT
-70
-0
-62
-1
-6
-CONTINUOUS
-0
-LAYER
-5
-12
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-2
-PIPE_TOP
-70
-0
-62
-1
-6
-CONTINUOUS
-0
-LAYER
-5
-13
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-2
-EXCAVATION
-70
-0
-62
-3
-6
-DASHED
-0
-LAYER
-5
-14
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-2
-STRUCTURES
-70
-0
-62
-2
-6
-CONTINUOUS
-0
-LAYER
-5
-15
-330
-2
-100
-AcDbSymbolTableRecord
-100
-AcDbLayerTableRecord
-2
-ANNOTATIONS
-70
-0
-62
-7
-6
-CONTINUOUS
-0
-ENDTAB
-0
-ENDSEC
-0
-SECTION
-2
-ENTITIES
-`;
-
-  // Add ground level polyline
-  dxf += generateGroundLevelDXF();
-  
-  // Add pipe invert line
-  dxf += generatePipeInvertDXF();
-  
-  // Add pipe top line
-  dxf += generatePipeTopDXF();
-  
-  // Add excavation boundary
-  dxf += generateExcavationDXF();
-  
-  // Add structures
-  dxf += generateStructuresDXF();
-  
-  // Add annotations
-  dxf += generateAnnotationsDXF();
-
-  dxf += `0
-ENDSEC
-0
-EOF
-`;
-
-  return dxf;
-}
-
-function generateGroundLevelDXF() {
-  let dxf = `0
-LWPOLYLINE
-5
-100
-330
-1F
-100
-AcDbEntity
-8
-GROUND_LEVEL
-100
-AcDbPolyline
-90
-${Math.floor(parameters.totalLength / 0.5) + 1}
-70
-0
-`;
-
-  const sortedStructures = [...structures].sort((a, b) => a.station - b.station);
-  
-  for (let station = 0; station <= parameters.totalLength; station += 0.5) {
-    let groundLevel;
-    
-    if (station <= sortedStructures[0].station) {
-      groundLevel = sortedStructures[0].coverLevel;
-    } else if (station >= sortedStructures[sortedStructures.length - 1].station) {
-      groundLevel = sortedStructures[sortedStructures.length - 1].coverLevel;
-    } else {
-      let beforeStructure = sortedStructures[0];
-      let afterStructure = sortedStructures[1];
-      
-      for (let i = 0; i < sortedStructures.length - 1; i++) {
-        if (station >= sortedStructures[i].station && station <= sortedStructures[i + 1].station) {
-          beforeStructure = sortedStructures[i];
-          afterStructure = sortedStructures[i + 1];
-          break;
-        }
-      }
-      
-      const ratio = (station - beforeStructure.station) / (afterStructure.station - beforeStructure.station);
-      groundLevel = beforeStructure.coverLevel + ratio * (afterStructure.coverLevel - beforeStructure.coverLevel);
-    }
-    
-    dxf += `10
-${station.toFixed(3)}
-20
-${groundLevel.toFixed(3)}
-`;
+function refreshProfile() {
+  if (currentTab === 'profile') {
+    setTimeout(() => drawProfile(), 100);
   }
-  
-  return dxf;
-}
-
-function generatePipeInvertDXF() {
-  let dxf = `0
-LWPOLYLINE
-5
-101
-330
-1F
-100
-AcDbEntity
-8
-PIPE_INVERT
-100
-AcDbPolyline
-90
-${Math.floor(parameters.totalLength / 0.5) + 1}
-70
-0
-`;
-
-  for (let station = 0; station <= parameters.totalLength; station += 0.5) {
-    const distanceFromStart = station;
-    const drop = distanceFromStart * (parameters.slope / 100);
-    const invertAtStation = parameters.startInvert - drop;
-    
-    dxf += `10
-${station.toFixed(3)}
-20
-${invertAtStation.toFixed(3)}
-`;
-  }
-  
-  return dxf;
-}
-
-function generatePipeTopDXF() {
-  let dxf = `0
-LWPOLYLINE
-5
-102
-330
-1F
-100
-AcDbEntity
-8
-PIPE_TOP
-100
-AcDbPolyline
-90
-${Math.floor(parameters.totalLength / 0.5) + 1}
-70
-0
-`;
-
-  for (let station = 0; station <= parameters.totalLength; station += 0.5) {
-    const distanceFromStart = station;
-    const drop = distanceFromStart * (parameters.slope / 100);
-    const invertAtStation = parameters.startInvert - drop;
-    const topOfPipe = invertAtStation + (parameters.pipeSize / 1000);
-    
-    dxf += `10
-${station.toFixed(3)}
-20
-${topOfPipe.toFixed(3)}
-`;
-  }
-  
-  return dxf;
-}
-
-function generateExcavationDXF() {
-  let dxf = `0
-LWPOLYLINE
-5
-103
-330
-1F
-100
-AcDbEntity
-8
-EXCAVATION
-100
-AcDbPolyline
-90
-${Math.floor(parameters.totalLength / 0.5) + 1}
-70
-0
-`;
-
-  for (let station = 0; station <= parameters.totalLength; station += 0.5) {
-    const distanceFromStart = station;
-    const drop = distanceFromStart * (parameters.slope / 100);
-    const invertAtStation = parameters.startInvert - drop;
-    const excavationLevel = invertAtStation - 0.2;
-    
-    dxf += `10
-${station.toFixed(3)}
-20
-${excavationLevel.toFixed(3)}
-`;
-  }
-  
-  return dxf;
-}
-
-function generateStructuresDXF() {
-  let dxf = '';
-  let entityId = 200;
-  
-  structures.forEach(structure => {
-    // Structure vertical line
-    dxf += `0
-LINE
-5
-${entityId++}
-330
-1F
-100
-AcDbEntity
-8
-STRUCTURES
-100
-AcDbLine
-10
-${structure.station.toFixed(3)}
-20
-${structure.coverLevel.toFixed(3)}
-30
-0.0
-11
-${structure.station.toFixed(3)}
-21
-${structure.excavation.toFixed(3)}
-31
-0.0
-`;
-
-    // Structure symbol
-    if (structure.type === 'manhole') {
-      dxf += `0
-CIRCLE
-5
-${entityId++}
-330
-1F
-100
-AcDbEntity
-8
-STRUCTURES
-100
-AcDbCircle
-10
-${structure.station.toFixed(3)}
-20
-${structure.coverLevel.toFixed(3)}
-30
-0.0
-40
-0.5
-`;
-    } else {
-      dxf += `0
-LWPOLYLINE
-5
-${entityId++}
-330
-1F
-100
-AcDbEntity
-8
-STRUCTURES
-100
-AcDbPolyline
-90
-5
-70
-1
-10
-${(structure.station - 0.3).toFixed(3)}
-20
-${(structure.coverLevel - 0.3).toFixed(3)}
-10
-${(structure.station + 0.3).toFixed(3)}
-20
-${(structure.coverLevel - 0.3).toFixed(3)}
-10
-${(structure.station + 0.3).toFixed(3)}
-20
-${(structure.coverLevel + 0.3).toFixed(3)}
-10
-${(structure.station - 0.3).toFixed(3)}
-20
-${(structure.coverLevel + 0.3).toFixed(3)}
-10
-${(structure.station - 0.3).toFixed(3)}
-20
-${(structure.coverLevel - 0.3).toFixed(3)}
-`;
-    }
-  });
-  
-  return dxf;
-}
-
-function generateAnnotationsDXF() {
-  let dxf = '';
-  let entityId = 300;
-  
-  // Station markers
-  for (let station = 0; station <= parameters.totalLength; station += 5) {
-    dxf += `0
-TEXT
-5
-${entityId++}
-330
-1F
-100
-AcDbEntity
-8
-ANNOTATIONS
-100
-AcDbText
-10
-${station.toFixed(3)}
-20
-${(Math.min(...structures.map(s => s.excavation)) - 0.5).toFixed(3)}
-30
-0.0
-40
-0.2
-1
-${station}m
-50
-0.0
-`;
-  }
-  
-  // Title
-  dxf += `0
-TEXT
-5
-${entityId++}
-330
-1F
-100
-AcDbEntity
-8
-ANNOTATIONS
-100
-AcDbText
-10
-${(parameters.totalLength / 2).toFixed(3)}
-20
-${(Math.max(...structures.map(s => s.coverLevel)) + 0.5).toFixed(3)}
-30
-0.0
-40
-0.5
-1
-CIVIL SURVEY PROFILE - ${parameters.sectionName}
-50
-0.0
-72
-1
-`;
-  
-  return dxf;
-}
-
-function downloadFile(content, filename, mimeType) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  showNotification('Profile drawing refreshed', 'success');
 }
 
 function printProfile() {
@@ -1345,7 +817,7 @@ function printProfile() {
   if (!canvas) return;
   
   const printWindow = window.open('', '_blank');
-  const imgData = canvas.toDataURL('image/png');
+  const imgData = canvas.toDataURL();
   
   printWindow.document.write(`
     <!DOCTYPE html>
@@ -1353,25 +825,22 @@ function printProfile() {
     <head>
       <title>Civil Survey Profile - ${parameters.sectionName}</title>
       <style>
-        @page { margin: 1cm; size: A3 landscape; }
-        body { margin: 0; padding: 20px; text-align: center; font-family: Arial, sans-serif; }
+        body { margin: 0; padding: 20px; text-align: center; }
+        img { max-width: 100%; height: auto; }
         .header { margin-bottom: 20px; }
-        .header h1 { color: #1e40af; margin: 0; }
-        .header p { color: #64748b; margin: 5px 0; }
-        .profile-image { max-width: 100%; height: auto; border: 1px solid #ccc; }
         .footer { margin-top: 20px; font-size: 12px; color: #666; }
       </style>
     </head>
     <body>
       <div class="header">
-        <h1>Civil Survey Profile</h1>
-        <p>${parameters.sectionName}</p>
-        <p>Length: ${parameters.totalLength}m | Pipe: Ø${parameters.pipeSize}mm | Slope: ${parameters.slope.toFixed(3)}%</p>
-      </div>
-      <img src="${imgData}" class="profile-image" alt="Civil Survey Profile">
-      <div class="footer">
+        <h1>Civil Survey Profile Drawing</h1>
+        <h2>${parameters.sectionName}</h2>
         <p>Surveyor: ${surveyorInfo.name} | ${surveyorInfo.title} | ${surveyorInfo.phone}</p>
+      </div>
+      <img src="${imgData}" alt="Civil Survey Profile">
+      <div class="footer">
         <p>Generated: ${new Date().toLocaleString()}</p>
+        <p>Professional Pipe & Excavation Calculator System</p>
       </div>
     </body>
     </html>
@@ -1381,20 +850,16 @@ function printProfile() {
   printWindow.print();
 }
 
-function saveProfileImage() {
+function exportProfile() {
   const canvas = document.getElementById('profileCanvas');
   if (!canvas) return;
   
-  try {
-    const link = document.createElement('a');
-    link.download = `${parameters.sectionName.replace(/[^a-zA-Z0-9]/g, '_')}_Profile.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    showNotification('Profile image saved successfully', 'success');
-  } catch (error) {
-    console.error('Error saving profile image:', error);
-    showNotification('Error saving profile image', 'error');
-  }
+  const link = document.createElement('a');
+  link.download = `Civil_Survey_Profile_${parameters.sectionName.replace(/\s+/g, '_')}.png`;
+  link.href = canvas.toDataURL();
+  link.click();
+  
+  showNotification('Profile exported as PNG', 'success');
 }
 
 function renderStructuresTable() {
@@ -1494,9 +959,9 @@ function updateStructure(id, field, value) {
     // Refresh the table to show updated excavation depth
     refreshStructuresTable();
     
-    // Refresh profile if visible
+    // Refresh profile if it's currently visible
     if (currentTab === 'profile') {
-      drawCivilProfile();
+      setTimeout(() => drawProfile(), 100);
     }
     
     showNotification('Structure updated', 'info');
@@ -1513,9 +978,9 @@ function deleteStructure(id) {
   refreshStructuresTable();
   updateSectionName();
   
-  // Refresh profile if visible
+  // Refresh profile if it's currently visible
   if (currentTab === 'profile') {
-    drawCivilProfile();
+    setTimeout(() => drawProfile(), 100);
   }
   
   showNotification('Structure deleted', 'success');
@@ -1526,9 +991,9 @@ function sortStructures() {
   refreshStructuresTable();
   updateSectionName();
   
-  // Refresh profile if visible
+  // Refresh profile if it's currently visible
   if (currentTab === 'profile') {
-    drawCivilProfile();
+    setTimeout(() => drawProfile(), 100);
   }
   
   showNotification('Structures sorted by station', 'success');
@@ -1611,7 +1076,7 @@ function recalculateParameters() {
   
   // Refresh profile if visible
   if (currentTab === 'profile') {
-    drawCivilProfile();
+    setTimeout(() => drawProfile(), 100);
   }
 }
 
@@ -1801,8 +1266,6 @@ function generateProfessionalReport() {
 }
 
 function generateProfessionalReportHTML(record) {
-  const groundLevel = 602; // Assumed ground level
-  
   // Generate detailed station analysis
   const stationAnalysis = [];
   const step = record.parameters.stationInterval; // User-defined interval
@@ -2473,6 +1936,6 @@ window.sortStructures = sortStructures;
 window.updateSectionName = updateSectionName;
 window.clearSignature = clearSignature;
 window.saveSignature = saveSignature;
-window.exportToCAD = exportToCAD;
+window.refreshProfile = refreshProfile;
 window.printProfile = printProfile;
-window.saveProfileImage = saveProfileImage;
+window.exportProfile = exportProfile;
