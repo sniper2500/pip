@@ -75,7 +75,7 @@ function initializeApp() {
         <button class="tab-button active" data-tab="parameters">Parameters & Calculations</button>
         <button class="tab-button" data-tab="structures">Project Structures</button>
         <button class="tab-button" data-tab="table">Analysis Table</button>
-        <button class="tab-button" data-tab="profile">Professional Profile</button>
+        <button class="tab-button" data-tab="profile">Civil Survey Profile</button>
       </nav>
 
       <div id="parameters-tab" class="tab-content">
@@ -287,187 +287,100 @@ function initializeApp() {
       <div id="profile-tab" class="tab-content" style="display: none;">
         <div class="profile-section">
           <div class="profile-header">
-            <div class="profile-title">
-              <h1>Professional Civil Survey Profile</h1>
-              <p>Comprehensive Infrastructure Analysis & Documentation</p>
+            <div class="profile-title-section">
+              <h1>Civil Survey Profile Drawing</h1>
+              <p>Professional Pipeline Cross-Section Analysis</p>
+              <div class="profile-project-info">
+                <span><strong>Project:</strong> ${parameters.sectionName}</span>
+                <span><strong>Length:</strong> ${parameters.totalLength}m</span>
+                <span><strong>Slope:</strong> ${parameters.slope.toFixed(3)}%</span>
+                <span><strong>Pipe:</strong> ${parameters.pipeSize}mm</span>
+              </div>
             </div>
-            <div class="profile-logo">
-              <div class="logo-circle">
-                <span class="logo-text">CS</span>
+            <div class="profile-surveyor-info">
+              <div class="surveyor-badge">
+                <div class="surveyor-name">${surveyorInfo.name}</div>
+                <div class="surveyor-title">${surveyorInfo.title}</div>
+                <div class="surveyor-contact">${surveyorInfo.phone}</div>
               </div>
             </div>
           </div>
 
-          <div class="profile-content">
-            <div class="surveyor-profile-card">
-              <div class="profile-card-header">
-                <h2>Professional Certification</h2>
-                <div class="certification-badge">CERTIFIED</div>
-              </div>
-              <div class="profile-card-content">
-                <div class="surveyor-details">
-                  <div class="detail-item">
-                    <span class="detail-label">Surveyor Name:</span>
-                    <span class="detail-value">${surveyorInfo.name}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Professional Title:</span>
-                    <span class="detail-value">${surveyorInfo.title}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Contact Number:</span>
-                    <span class="detail-value">${surveyorInfo.phone}</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">Specialization:</span>
-                    <span class="detail-value">Civil Infrastructure & Pipeline Systems</span>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-label">License Status:</span>
-                    <span class="detail-value status-active">Active & Verified</span>
-                  </div>
-                </div>
-                <div class="signature-display">
-                  <h4>Digital Signature</h4>
-                  <div class="signature-box-display">
-                    ${surveyorInfo.signature ? 
-                      `<img src="${surveyorInfo.signature}" class="signature-img-display" alt="Professional Signature">` : 
-                      '<span class="no-signature">No signature available</span>'
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div class="profile-drawing-container">
+            <canvas id="profileCanvas" class="profile-canvas"></canvas>
+          </div>
 
-            <div class="project-overview-card">
-              <div class="profile-card-header">
-                <h2>Current Project Overview</h2>
-                <div class="project-status">ACTIVE</div>
-              </div>
-              <div class="profile-card-content">
-                <div class="project-summary">
-                  <div class="summary-item">
-                    <div class="summary-icon">📏</div>
-                    <div class="summary-content">
-                      <h4>Section Name</h4>
-                      <p>${parameters.sectionName}</p>
-                    </div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-icon">🔧</div>
-                    <div class="summary-content">
-                      <h4>Pipeline Specifications</h4>
-                      <p>Diameter: ${parameters.pipeSize}mm | Length: ${parameters.totalLength}m</p>
-                    </div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-icon">📐</div>
-                    <div class="summary-content">
-                      <h4>Gradient Analysis</h4>
-                      <p>Slope: ${parameters.slope.toFixed(3)}% | Drop: ${(parameters.startInvert - parameters.endInvert).toFixed(3)}m</p>
-                    </div>
-                  </div>
-                  <div class="summary-item">
-                    <div class="summary-icon">🏗️</div>
-                    <div class="summary-content">
-                      <h4>Infrastructure Count</h4>
-                      <p>${structures.length} Structures | ${parameters.stationInterval}m Analysis Intervals</p>
-                    </div>
-                  </div>
+          <div class="profile-legend">
+            <div class="legend-section">
+              <h3>Legend & Symbols</h3>
+              <div class="legend-items">
+                <div class="legend-item">
+                  <div class="legend-symbol ground-line"></div>
+                  <span>Ground Level</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-symbol pipe-line"></div>
+                  <span>Pipe Invert</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-symbol excavation-line"></div>
+                  <span>Excavation Level</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-symbol manhole-symbol"></div>
+                  <span>Manhole</span>
+                </div>
+                <div class="legend-item">
+                  <div class="legend-symbol ic-symbol"></div>
+                  <span>IC Chamber</span>
                 </div>
               </div>
             </div>
-
-            <div class="technical-specifications-card">
-              <div class="profile-card-header">
-                <h2>Technical Specifications</h2>
-                <div class="spec-status">VERIFIED</div>
-              </div>
-              <div class="profile-card-content">
-                <div class="specs-grid">
-                  <div class="spec-category">
-                    <h4>Elevation Data</h4>
-                    <div class="spec-list">
-                      <div class="spec-item">
-                        <span>Start Invert:</span>
-                        <span>${parameters.startInvert.toFixed(3)}m</span>
-                      </div>
-                      <div class="spec-item">
-                        <span>End Invert:</span>
-                        <span>${parameters.endInvert.toFixed(3)}m</span>
-                      </div>
-                      <div class="spec-item">
-                        <span>Total Drop:</span>
-                        <span>${(parameters.startInvert - parameters.endInvert).toFixed(3)}m</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="spec-category">
-                    <h4>Excavation Standards</h4>
-                    <div class="spec-list">
-                      <div class="spec-item">
-                        <span>Manhole Depth:</span>
-                        <span>${parameters.excavationDepthManhole}cm</span>
-                      </div>
-                      <div class="spec-item">
-                        <span>IC Chamber Depth:</span>
-                        <span>${parameters.excavationDepthIC}cm</span>
-                      </div>
-                      <div class="spec-item">
-                        <span>Analysis Interval:</span>
-                        <span>${parameters.stationInterval}m</span>
-                      </div>
-                    </div>
-                  </div>
+            
+            <div class="profile-specifications">
+              <h3>Technical Specifications</h3>
+              <div class="spec-grid">
+                <div class="spec-item">
+                  <span>Start Invert:</span>
+                  <span>${parameters.startInvert.toFixed(3)}m</span>
+                </div>
+                <div class="spec-item">
+                  <span>End Invert:</span>
+                  <span>${parameters.endInvert.toFixed(3)}m</span>
+                </div>
+                <div class="spec-item">
+                  <span>Total Drop:</span>
+                  <span>${(parameters.startInvert - parameters.endInvert).toFixed(3)}m</span>
+                </div>
+                <div class="spec-item">
+                  <span>Pipe Diameter:</span>
+                  <span>${parameters.pipeSize}mm</span>
+                </div>
+                <div class="spec-item">
+                  <span>Station Interval:</span>
+                  <span>${parameters.stationInterval}m</span>
+                </div>
+                <div class="spec-item">
+                  <span>MH Excavation:</span>
+                  <span>${parameters.excavationDepthManhole}cm</span>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div class="structures-overview-card">
-              <div class="profile-card-header">
-                <h2>Infrastructure Inventory</h2>
-                <div class="inventory-count">${structures.length} Items</div>
-              </div>
-              <div class="profile-card-content">
-                <div class="structures-list">
-                  ${structures.map(structure => `
-                    <div class="structure-item">
-                      <div class="structure-visual">
-                        ${getStructureVisual(structure)}
-                      </div>
-                      <div class="structure-info">
-                        <h4>${structure.name}</h4>
-                        <p class="structure-type">${structure.type.replace('_', ' ').toUpperCase()}</p>
-                        <div class="structure-details">
-                          <span>Station: ${structure.station}m</span>
-                          <span>Invert: ${structure.invert.toFixed(3)}m</span>
-                          <span>Cover: ${structure.coverLevel.toFixed(3)}m</span>
-                        </div>
-                      </div>
-                      <div class="structure-status">
-                        <div class="status-indicator active"></div>
-                        <span>Surveyed</span>
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            </div>
-
-            <div class="profile-actions">
-              <button class="profile-action-btn primary" onclick="generateProfessionalReport()">
-                <span class="btn-icon">📋</span>
-                Generate Professional Report
-              </button>
-              <button class="profile-action-btn secondary" onclick="saveRecord()">
-                <span class="btn-icon">💾</span>
-                Save Current Project
-              </button>
-              <button class="profile-action-btn tertiary" onclick="printReport()">
-                <span class="btn-icon">🖨️</span>
-                Print Documentation
-              </button>
-            </div>
+          <div class="profile-actions">
+            <button class="profile-action-btn primary" onclick="printProfile()">
+              <span class="btn-icon">🖨️</span>
+              Print Profile
+            </button>
+            <button class="profile-action-btn secondary" onclick="exportProfile()">
+              <span class="btn-icon">💾</span>
+              Export Drawing
+            </button>
+            <button class="profile-action-btn tertiary" onclick="refreshProfile()">
+              <span class="btn-icon">🔄</span>
+              Refresh Profile
+            </button>
           </div>
         </div>
       </div>
@@ -523,18 +436,345 @@ function switchTab(tabName) {
   } else if (tabName === 'table') {
     refreshAnalysisTable();
   } else if (tabName === 'profile') {
-    refreshProfileSection();
+    setTimeout(() => {
+      initializeProfileCanvas();
+      drawProfile();
+    }, 100);
   }
 }
 
-function refreshProfileSection() {
-  // Update profile content with current data
-  const profileTab = document.getElementById('profile-tab');
-  if (profileTab && profileTab.style.display !== 'none') {
-    // Re-render the profile section with updated data
-    const currentProfileContent = profileTab.innerHTML;
-    // This will be automatically updated when switching tabs
+function initializeProfileCanvas() {
+  const canvas = document.getElementById('profileCanvas');
+  if (!canvas) return;
+  
+  // Set canvas size
+  const container = canvas.parentElement;
+  canvas.width = container.clientWidth - 40;
+  canvas.height = 600;
+  
+  // Set CSS size to match
+  canvas.style.width = canvas.width + 'px';
+  canvas.style.height = canvas.height + 'px';
+}
+
+function drawProfile() {
+  const canvas = document.getElementById('profileCanvas');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, width, height);
+  
+  // Set up drawing parameters
+  const margin = 80;
+  const drawWidth = width - 2 * margin;
+  const drawHeight = height - 2 * margin;
+  
+  // Calculate elevation range
+  const groundLevel = 602; // Assumed ground level
+  const minElevation = Math.min(parameters.startInvert, parameters.endInvert) - 1;
+  const maxElevation = groundLevel + 0.5;
+  const elevationRange = maxElevation - minElevation;
+  
+  // Scale functions
+  const scaleX = (station) => margin + (station / parameters.totalLength) * drawWidth;
+  const scaleY = (elevation) => margin + ((maxElevation - elevation) / elevationRange) * drawHeight;
+  
+  // Draw grid
+  drawGrid(ctx, margin, drawWidth, drawHeight, minElevation, maxElevation);
+  
+  // Draw ground line
+  drawGroundLine(ctx, scaleX, scaleY, groundLevel);
+  
+  // Draw pipe invert line
+  drawPipeInvertLine(ctx, scaleX, scaleY);
+  
+  // Draw excavation line
+  drawExcavationLine(ctx, scaleX, scaleY);
+  
+  // Draw structures
+  drawStructures(ctx, scaleX, scaleY, groundLevel);
+  
+  // Draw annotations
+  drawAnnotations(ctx, scaleX, scaleY, groundLevel, minElevation, maxElevation);
+  
+  // Draw title block
+  drawTitleBlock(ctx, width, height);
+}
+
+function drawGrid(ctx, margin, drawWidth, drawHeight, minElevation, maxElevation) {
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 2]);
+  
+  // Vertical grid lines (stations)
+  const stationStep = parameters.stationInterval;
+  for (let station = 0; station <= parameters.totalLength; station += stationStep) {
+    const x = margin + (station / parameters.totalLength) * drawWidth;
+    ctx.beginPath();
+    ctx.moveTo(x, margin);
+    ctx.lineTo(x, margin + drawHeight);
+    ctx.stroke();
   }
+  
+  // Horizontal grid lines (elevations)
+  const elevationStep = 0.5;
+  for (let elev = Math.floor(minElevation); elev <= Math.ceil(maxElevation); elev += elevationStep) {
+    const y = margin + ((maxElevation - elev) / (maxElevation - minElevation)) * drawHeight;
+    ctx.beginPath();
+    ctx.moveTo(margin, y);
+    ctx.lineTo(margin + drawWidth, y);
+    ctx.stroke();
+  }
+  
+  ctx.setLineDash([]);
+}
+
+function drawGroundLine(ctx, scaleX, scaleY, groundLevel) {
+  ctx.strokeStyle = '#8b5cf6';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([]);
+  
+  ctx.beginPath();
+  ctx.moveTo(scaleX(0), scaleY(groundLevel));
+  ctx.lineTo(scaleX(parameters.totalLength), scaleY(groundLevel));
+  ctx.stroke();
+}
+
+function drawPipeInvertLine(ctx, scaleX, scaleY) {
+  ctx.strokeStyle = '#dc2626';
+  ctx.lineWidth = 4;
+  
+  ctx.beginPath();
+  ctx.moveTo(scaleX(0), scaleY(parameters.startInvert));
+  ctx.lineTo(scaleX(parameters.totalLength), scaleY(parameters.endInvert));
+  ctx.stroke();
+  
+  // Draw pipe outline
+  const pipeRadius = (parameters.pipeSize / 1000) / 2;
+  ctx.strokeStyle = '#374151';
+  ctx.lineWidth = 2;
+  
+  // Top of pipe line
+  ctx.beginPath();
+  ctx.moveTo(scaleX(0), scaleY(parameters.startInvert + parameters.pipeSize / 1000));
+  ctx.lineTo(scaleX(parameters.totalLength), scaleY(parameters.endInvert + parameters.pipeSize / 1000));
+  ctx.stroke();
+}
+
+function drawExcavationLine(ctx, scaleX, scaleY) {
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([5, 5]);
+  
+  // Calculate excavation levels at start and end
+  const startExcavation = parameters.startInvert - (parameters.excavationDepthManhole / 100);
+  const endExcavation = parameters.endInvert - (parameters.excavationDepthIC / 100);
+  
+  ctx.beginPath();
+  ctx.moveTo(scaleX(0), scaleY(startExcavation));
+  ctx.lineTo(scaleX(parameters.totalLength), scaleY(endExcavation));
+  ctx.stroke();
+  
+  ctx.setLineDash([]);
+}
+
+function drawStructures(ctx, scaleX, scaleY, groundLevel) {
+  structures.forEach(structure => {
+    const x = scaleX(structure.station);
+    const invertY = scaleY(structure.invert);
+    const coverY = scaleY(structure.coverLevel);
+    const excavationY = scaleY(structure.excavation);
+    const groundY = scaleY(groundLevel);
+    
+    // Draw structure symbol
+    if (structure.type === 'manhole') {
+      drawManholeSymbol(ctx, x, invertY, coverY, excavationY, structure.color);
+    } else {
+      drawICChamberSymbol(ctx, x, invertY, coverY, excavationY, structure.color);
+    }
+    
+    // Draw structure name
+    ctx.fillStyle = '#1e40af';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(structure.name, x, groundY - 20);
+    
+    // Draw station number
+    ctx.fillStyle = '#374151';
+    ctx.font = '10px Arial';
+    ctx.fillText(`STA ${structure.station.toFixed(1)}`, x, groundY - 5);
+  });
+}
+
+function drawManholeSymbol(ctx, x, invertY, coverY, excavationY, color) {
+  const radius = 15;
+  
+  // Draw manhole structure
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  
+  // Main circle
+  ctx.beginPath();
+  ctx.arc(x, invertY, radius, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.stroke();
+  
+  // Inner circle
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(x, invertY, radius - 5, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.stroke();
+  
+  // Vertical line to cover
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x, invertY - radius);
+  ctx.lineTo(x, coverY);
+  ctx.stroke();
+  
+  // Excavation indicator
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(x - radius - 5, excavationY);
+  ctx.lineTo(x + radius + 5, excavationY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawICChamberSymbol(ctx, x, invertY, coverY, excavationY, color) {
+  const width = 20;
+  const height = 15;
+  
+  // Draw IC chamber structure
+  ctx.fillStyle = color;
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  
+  // Main rectangle
+  ctx.fillRect(x - width/2, invertY - height/2, width, height);
+  ctx.strokeRect(x - width/2, invertY - height/2, width, height);
+  
+  // Inner rectangle
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(x - width/2 + 3, invertY - height/2 + 3, width - 6, height - 6);
+  ctx.strokeRect(x - width/2 + 3, invertY - height/2 + 3, width - 6, height - 6);
+  
+  // Vertical line to cover
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x, invertY - height/2);
+  ctx.lineTo(x, coverY);
+  ctx.stroke();
+  
+  // Excavation indicator
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(x - width/2 - 5, excavationY);
+  ctx.lineTo(x + width/2 + 5, excavationY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawAnnotations(ctx, scaleX, scaleY, groundLevel, minElevation, maxElevation) {
+  // Station annotations
+  ctx.fillStyle = '#374151';
+  ctx.font = '11px Arial';
+  ctx.textAlign = 'center';
+  
+  for (let station = 0; station <= parameters.totalLength; station += parameters.stationInterval) {
+    const x = scaleX(station);
+    const y = scaleY(minElevation) + 20;
+    ctx.fillText(`${station}`, x, y);
+  }
+  
+  // Elevation annotations
+  ctx.textAlign = 'right';
+  const elevationStep = 0.5;
+  for (let elev = Math.floor(minElevation); elev <= Math.ceil(maxElevation); elev += elevationStep) {
+    const x = scaleX(0) - 10;
+    const y = scaleY(elev) + 4;
+    ctx.fillText(`${elev.toFixed(1)}`, x, y);
+  }
+  
+  // Axis labels
+  ctx.fillStyle = '#1e40af';
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'center';
+  
+  // X-axis label
+  ctx.fillText('STATION (m)', scaleX(parameters.totalLength / 2), scaleY(minElevation) + 50);
+  
+  // Y-axis label
+  ctx.save();
+  ctx.translate(20, scaleY((maxElevation + minElevation) / 2));
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('ELEVATION (m)', 0, 0);
+  ctx.restore();
+  
+  // Slope annotation
+  ctx.fillStyle = '#dc2626';
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'left';
+  const midX = scaleX(parameters.totalLength / 2);
+  const midY = scaleY((parameters.startInvert + parameters.endInvert) / 2) - 20;
+  ctx.fillText(`SLOPE: ${parameters.slope.toFixed(3)}%`, midX - 50, midY);
+  
+  // Pipe size annotation
+  ctx.fillStyle = '#059669';
+  ctx.fillText(`Ø${parameters.pipeSize}mm`, midX - 50, midY + 15);
+}
+
+function drawTitleBlock(ctx, width, height) {
+  const blockWidth = 300;
+  const blockHeight = 120;
+  const x = width - blockWidth - 20;
+  const y = height - blockHeight - 20;
+  
+  // Draw title block border
+  ctx.strokeStyle = '#1e40af';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, blockWidth, blockHeight);
+  
+  // Fill background
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(x + 1, y + 1, blockWidth - 2, blockHeight - 2);
+  
+  // Title
+  ctx.fillStyle = '#1e40af';
+  ctx.font = 'bold 14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('CIVIL SURVEY PROFILE', x + 10, y + 20);
+  
+  // Project info
+  ctx.fillStyle = '#374151';
+  ctx.font = '11px Arial';
+  ctx.fillText(`Project: ${parameters.sectionName}`, x + 10, y + 40);
+  ctx.fillText(`Length: ${parameters.totalLength}m`, x + 10, y + 55);
+  ctx.fillText(`Pipe: Ø${parameters.pipeSize}mm`, x + 10, y + 70);
+  
+  // Surveyor info
+  ctx.fillStyle = '#059669';
+  ctx.font = 'bold 10px Arial';
+  ctx.fillText('Surveyor: AHMED BARAKAT', x + 10, y + 90);
+  ctx.fillText('Professional Surveyor', x + 10, y + 105);
+  
+  // Date
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '9px Arial';
+  ctx.textAlign = 'right';
+  ctx.fillText(new Date().toLocaleDateString(), x + blockWidth - 10, y + 105);
 }
 
 function renderStructuresTable() {
@@ -633,6 +873,12 @@ function updateStructure(id, field, value) {
     
     // Refresh the table to show updated excavation depth
     refreshStructuresTable();
+    
+    // Refresh profile if visible
+    if (currentTab === 'profile') {
+      setTimeout(() => drawProfile(), 100);
+    }
+    
     showNotification('Structure updated', 'info');
   }
 }
@@ -646,6 +892,12 @@ function deleteStructure(id) {
   structures = structures.filter(s => s.id !== id);
   refreshStructuresTable();
   updateSectionName();
+  
+  // Refresh profile if visible
+  if (currentTab === 'profile') {
+    setTimeout(() => drawProfile(), 100);
+  }
+  
   showNotification('Structure deleted', 'success');
 }
 
@@ -653,6 +905,12 @@ function sortStructures() {
   structures.sort((a, b) => a.station - b.station);
   refreshStructuresTable();
   updateSectionName();
+  
+  // Refresh profile if visible
+  if (currentTab === 'profile') {
+    setTimeout(() => drawProfile(), 100);
+  }
+  
   showNotification('Structures sorted by station', 'success');
 }
 
@@ -729,6 +987,11 @@ function recalculateParameters() {
   // Refresh analysis table if visible
   if (currentTab === 'table') {
     refreshAnalysisTable();
+  }
+  
+  // Refresh profile if visible
+  if (currentTab === 'profile') {
+    setTimeout(() => drawProfile(), 100);
   }
 }
 
@@ -900,6 +1163,65 @@ function printReport() {
   printWindow.document.write(generatePrintHTML(currentRecord));
   printWindow.document.close();
   printWindow.print();
+}
+
+function printProfile() {
+  const canvas = document.getElementById('profileCanvas');
+  if (!canvas) return;
+  
+  const printWindow = window.open('', '_blank');
+  const imageData = canvas.toDataURL();
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Civil Survey Profile - ${parameters.sectionName}</title>
+      <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .profile-image { width: 100%; max-width: 1000px; margin: 0 auto; display: block; }
+        .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Civil Survey Profile Drawing</h1>
+        <h2>${parameters.sectionName}</h2>
+        <p>Surveyor: ${surveyorInfo.name} | ${new Date().toLocaleDateString()}</p>
+      </div>
+      <img src="${imageData}" class="profile-image" alt="Civil Survey Profile">
+      <div class="footer">
+        <p>Professional Civil Engineering Survey | ${surveyorInfo.name} | ${surveyorInfo.phone}</p>
+      </div>
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+  printWindow.print();
+}
+
+function exportProfile() {
+  const canvas = document.getElementById('profileCanvas');
+  if (!canvas) return;
+  
+  const link = document.createElement('a');
+  link.download = `civil-survey-profile-${parameters.sectionName.replace(/\s+/g, '-')}.png`;
+  link.href = canvas.toDataURL();
+  link.click();
+  
+  showNotification('Profile exported successfully', 'success');
+}
+
+function refreshProfile() {
+  if (currentTab === 'profile') {
+    setTimeout(() => {
+      initializeProfileCanvas();
+      drawProfile();
+    }, 100);
+    showNotification('Profile refreshed', 'success');
+  }
 }
 
 function generateProfessionalReport() {
@@ -1590,3 +1912,6 @@ window.sortStructures = sortStructures;
 window.updateSectionName = updateSectionName;
 window.clearSignature = clearSignature;
 window.saveSignature = saveSignature;
+window.printProfile = printProfile;
+window.exportProfile = exportProfile;
+window.refreshProfile = refreshProfile;
