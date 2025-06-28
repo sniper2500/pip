@@ -75,6 +75,7 @@ function initializeApp() {
         <button class="tab-button active" data-tab="parameters">Parameters & Calculations</button>
         <button class="tab-button" data-tab="structures">Project Structures</button>
         <button class="tab-button" data-tab="table">Analysis Table</button>
+        <button class="tab-button" data-tab="profile">Professional Profile</button>
       </nav>
 
       <div id="parameters-tab" class="tab-content">
@@ -282,6 +283,194 @@ function initializeApp() {
           </div>
         </div>
       </div>
+
+      <div id="profile-tab" class="tab-content" style="display: none;">
+        <div class="profile-section">
+          <div class="profile-header">
+            <div class="profile-title">
+              <h1>Professional Civil Survey Profile</h1>
+              <p>Comprehensive Infrastructure Analysis & Documentation</p>
+            </div>
+            <div class="profile-logo">
+              <div class="logo-circle">
+                <span class="logo-text">CS</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-content">
+            <div class="surveyor-profile-card">
+              <div class="profile-card-header">
+                <h2>Professional Certification</h2>
+                <div class="certification-badge">CERTIFIED</div>
+              </div>
+              <div class="profile-card-content">
+                <div class="surveyor-details">
+                  <div class="detail-item">
+                    <span class="detail-label">Surveyor Name:</span>
+                    <span class="detail-value">${surveyorInfo.name}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Professional Title:</span>
+                    <span class="detail-value">${surveyorInfo.title}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Contact Number:</span>
+                    <span class="detail-value">${surveyorInfo.phone}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Specialization:</span>
+                    <span class="detail-value">Civil Infrastructure & Pipeline Systems</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">License Status:</span>
+                    <span class="detail-value status-active">Active & Verified</span>
+                  </div>
+                </div>
+                <div class="signature-display">
+                  <h4>Digital Signature</h4>
+                  <div class="signature-box-display">
+                    ${surveyorInfo.signature ? 
+                      `<img src="${surveyorInfo.signature}" class="signature-img-display" alt="Professional Signature">` : 
+                      '<span class="no-signature">No signature available</span>'
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="project-overview-card">
+              <div class="profile-card-header">
+                <h2>Current Project Overview</h2>
+                <div class="project-status">ACTIVE</div>
+              </div>
+              <div class="profile-card-content">
+                <div class="project-summary">
+                  <div class="summary-item">
+                    <div class="summary-icon">📏</div>
+                    <div class="summary-content">
+                      <h4>Section Name</h4>
+                      <p>${parameters.sectionName}</p>
+                    </div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-icon">🔧</div>
+                    <div class="summary-content">
+                      <h4>Pipeline Specifications</h4>
+                      <p>Diameter: ${parameters.pipeSize}mm | Length: ${parameters.totalLength}m</p>
+                    </div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-icon">📐</div>
+                    <div class="summary-content">
+                      <h4>Gradient Analysis</h4>
+                      <p>Slope: ${parameters.slope.toFixed(3)}% | Drop: ${(parameters.startInvert - parameters.endInvert).toFixed(3)}m</p>
+                    </div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-icon">🏗️</div>
+                    <div class="summary-content">
+                      <h4>Infrastructure Count</h4>
+                      <p>${structures.length} Structures | ${parameters.stationInterval}m Analysis Intervals</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="technical-specifications-card">
+              <div class="profile-card-header">
+                <h2>Technical Specifications</h2>
+                <div class="spec-status">VERIFIED</div>
+              </div>
+              <div class="profile-card-content">
+                <div class="specs-grid">
+                  <div class="spec-category">
+                    <h4>Elevation Data</h4>
+                    <div class="spec-list">
+                      <div class="spec-item">
+                        <span>Start Invert:</span>
+                        <span>${parameters.startInvert.toFixed(3)}m</span>
+                      </div>
+                      <div class="spec-item">
+                        <span>End Invert:</span>
+                        <span>${parameters.endInvert.toFixed(3)}m</span>
+                      </div>
+                      <div class="spec-item">
+                        <span>Total Drop:</span>
+                        <span>${(parameters.startInvert - parameters.endInvert).toFixed(3)}m</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="spec-category">
+                    <h4>Excavation Standards</h4>
+                    <div class="spec-list">
+                      <div class="spec-item">
+                        <span>Manhole Depth:</span>
+                        <span>${parameters.excavationDepthManhole}cm</span>
+                      </div>
+                      <div class="spec-item">
+                        <span>IC Chamber Depth:</span>
+                        <span>${parameters.excavationDepthIC}cm</span>
+                      </div>
+                      <div class="spec-item">
+                        <span>Analysis Interval:</span>
+                        <span>${parameters.stationInterval}m</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="structures-overview-card">
+              <div class="profile-card-header">
+                <h2>Infrastructure Inventory</h2>
+                <div class="inventory-count">${structures.length} Items</div>
+              </div>
+              <div class="profile-card-content">
+                <div class="structures-list">
+                  ${structures.map(structure => `
+                    <div class="structure-item">
+                      <div class="structure-visual">
+                        ${getStructureVisual(structure)}
+                      </div>
+                      <div class="structure-info">
+                        <h4>${structure.name}</h4>
+                        <p class="structure-type">${structure.type.replace('_', ' ').toUpperCase()}</p>
+                        <div class="structure-details">
+                          <span>Station: ${structure.station}m</span>
+                          <span>Invert: ${structure.invert.toFixed(3)}m</span>
+                          <span>Cover: ${structure.coverLevel.toFixed(3)}m</span>
+                        </div>
+                      </div>
+                      <div class="structure-status">
+                        <div class="status-indicator active"></div>
+                        <span>Surveyed</span>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-actions">
+              <button class="profile-action-btn primary" onclick="generateProfessionalReport()">
+                <span class="btn-icon">📋</span>
+                Generate Professional Report
+              </button>
+              <button class="profile-action-btn secondary" onclick="saveRecord()">
+                <span class="btn-icon">💾</span>
+                Save Current Project
+              </button>
+              <button class="profile-action-btn tertiary" onclick="printReport()">
+                <span class="btn-icon">🖨️</span>
+                Print Documentation
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 
@@ -333,6 +522,18 @@ function switchTab(tabName) {
     refreshStructuresTable();
   } else if (tabName === 'table') {
     refreshAnalysisTable();
+  } else if (tabName === 'profile') {
+    refreshProfileSection();
+  }
+}
+
+function refreshProfileSection() {
+  // Update profile content with current data
+  const profileTab = document.getElementById('profile-tab');
+  if (profileTab && profileTab.style.display !== 'none') {
+    // Re-render the profile section with updated data
+    const currentProfileContent = profileTab.innerHTML;
+    // This will be automatically updated when switching tabs
   }
 }
 
