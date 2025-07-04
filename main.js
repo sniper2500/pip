@@ -2,6 +2,9 @@ import './style.css'
 import { setupCounter } from './counter.js'
 import { ImportExportManager } from './src/importExport.js'
 import { ImportExportUI } from './src/importExportUI.js'
+import { authManager } from './src/auth.js'
+import { projectManager } from './src/projectManager.js'
+import { database } from './src/database.js'
 
 // Global variables
 let currentTab = 'parameters';
@@ -194,6 +197,64 @@ const app = {
     updateStructureDepths();
     renderTable();
     updateProfileDrawing();
+  },
+
+  // Database integration methods
+  async saveToDatabase() {
+    try {
+      if (!authManager.isUserAuthenticated()) {
+        showNotification('Please sign in to save your project', 'error');
+        return;
+      }
+
+      const projectData = this.getCurrentProjectData();
+      const projectId = await projectManager.saveCurrentProject(projectData);
+      
+      showNotification('Project saved to database successfully!', 'success');
+      return projectId;
+    } catch (error) {
+      console.error('Error saving to database:', error);
+      showNotification('Failed to save project: ' + error.message, 'error');
+    }
+  },
+
+  async loadFromDatabase(projectId) {
+    try {
+      const projectData = await projectManager.loadProject(projectId);
+      
+      if (projectData.parameters) {
+        Object.assign(appState.parameters, projectData.parameters);
+        this.updateParametersUI();
+      }
+      
+      if (projectData.structures) {
+        appState.structures = projectData.structures;
+        structures = projectData.structures;
+        this.updateStructuresUI();
+      }
+      
+      if (projectData.surveyorInfo) {
+        Object.assign(appState.surveyorInfo, projectData.surveyorInfo);
+        this.updateSurveyorInfoUI();
+        
+        if (projectData.surveyorInfo.signature) {
+          appState.signature = projectData.surveyorInfo.signature;
+          // Update signature preview
+          const preview = document.getElementById('signature-preview');
+          const img = document.getElementById('saved-signature');
+          if (preview && img) {
+            img.src = projectData.surveyorInfo.signature;
+            preview.style.display = 'block';
+          }
+        }
+      }
+      
+      this.recalculateAll();
+      showNotification('Project loaded successfully!', 'success');
+    } catch (error) {
+      console.error('Error loading from database:', error);
+      showNotification('Failed to load project: ' + error.message, 'error');
+    }
   }
 };
 
@@ -205,10 +266,14 @@ document.querySelector('#app').innerHTML = `
     <header>
       <h1>🚧 Pipe & Excavation Calculator</h1>
       <p>Professional civil engineering calculations for pipe installation and excavation planning</p>
+      <div class="auth-section" id="auth-section">
+        <!-- Auth UI will be inserted here -->
+      </div>
     </header>
 
     <nav class="tab-navigation no-print">
       <button class="tab-button active" data-tab="parameters">📊 Parameters</button>
+      <button class="tab-button" data-tab="projects">💾 Projects</button>
       <button class="tab-button" data-tab="import-export">📁 Import/Export</button>
       <button class="tab-button" data-tab="structures">🏗️ Structures</button>
       <button class="tab-button" data-tab="table">📋 Calculations</button>
@@ -285,6 +350,7 @@ document.querySelector('#app').innerHTML = `
         <div class="button-group">
           <button class="recalculate-btn" onclick="recalculateAll()">🔄 Recalculate</button>
           <button class="save-record-btn" onclick="saveRecord()">💾 Save Record</button>
+          <button class="save-database-btn" onclick="app.saveToDatabase()">💾 Save to Database</button>
           <button class="professional-report-btn" onclick="generateProfessionalReport()">📄 Professional Report</button>
           <button class="print-btn no-print" onclick="window.print()">🖨️ Print</button>
         </div>
@@ -343,6 +409,10 @@ document.querySelector('#app').innerHTML = `
           </div>
         </div>
       </section>
+    </div>
+
+    <div id="projects-tab" class="tab-content" style="display: none;">
+      <!-- Projects content will be inserted here -->
     </div>
 
     <div id="import-export-tab" class="tab-content" style="display: none;">
@@ -520,16 +590,281 @@ document.querySelector('#app').innerHTML = `
   </div>
 `
 
-// Initialize Import/Export UI
+// Initialize Import/Export UI and Projects UI
 document.addEventListener('DOMContentLoaded', () => {
   // Insert import/export content
   const importExportTab = document.getElementById('import-export-tab');
   importExportUI = new ImportExportUI(importExportManager, app);
   importExportTab.innerHTML = importExportUI.createImportExportSection();
   
+  // Insert projects content
+  const projectsTab = document.getElementById('projects-tab');
+  projectsTab.innerHTML = createProjectsSection();
+  
+  // Insert auth content
+  const authSection = document.getElementById('auth-section');
+  authSection.innerHTML = createAuthSection();
+  
   // Initialize other components
   initializeApp();
+  
+  // Initialize auth state
+  authManager.onAuthChange((user, isAuthenticated) => {
+    updateAuthUI(user, isAuthenticated);
+    if (isAuthenticated) {
+      loadUserProjects();
+      // Start auto-save
+      projectManager.startAutoSave(() => app.getCurrentProjectData());
+    } else {
+      projectManager.stopAutoSave();
+    }
+  });
 });
+
+// Create auth section
+function createAuthSection() {
+  return `
+    <div class="auth-container">
+      <div class="auth-status" id="auth-status">
+        <div class="auth-loading">Loading...</div>
+      </div>
+      <div class="auth-forms" id="auth-forms" style="display: none;">
+        <div class="auth-form" id="sign-in-form">
+          <h3>Sign In</h3>
+          <input type="email" id="sign-in-email" placeholder="Email" required>
+          <input type="password" id="sign-in-password" placeholder="Password" required>
+          <button onclick="signIn()">Sign In</button>
+          <p>Don't have an account? <a href="#" onclick="showSignUp()">Sign up</a></p>
+        </div>
+        <div class="auth-form" id="sign-up-form" style="display: none;">
+          <h3>Sign Up</h3>
+          <input type="email" id="sign-up-email" placeholder="Email" required>
+          <input type="password" id="sign-up-password" placeholder="Password" required>
+          <button onclick="signUp()">Sign Up</button>
+          <p>Already have an account? <a href="#" onclick="showSignIn()">Sign in</a></p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Create projects section
+function createProjectsSection() {
+  return `
+    <section class="projects-section">
+      <div class="projects-header">
+        <h2>💾 My Projects</h2>
+        <p>Manage your saved pipe & excavation calculator projects</p>
+        <div class="projects-actions">
+          <button class="new-project-btn" onclick="createNewProject()">➕ New Project</button>
+          <button class="refresh-projects-btn" onclick="loadUserProjects()">🔄 Refresh</button>
+        </div>
+      </div>
+      
+      <div class="current-project-info" id="current-project-info" style="display: none;">
+        <h3>📋 Current Project</h3>
+        <div class="current-project-details" id="current-project-details"></div>
+        <div class="current-project-actions">
+          <button class="save-current-btn" onclick="app.saveToDatabase()">💾 Save Changes</button>
+          <button class="close-project-btn" onclick="closeCurrentProject()">❌ Close Project</button>
+        </div>
+      </div>
+      
+      <div class="projects-list" id="projects-list">
+        <div class="projects-loading">Loading projects...</div>
+      </div>
+    </section>
+  `;
+}
+
+// Auth functions
+async function signIn() {
+  const email = document.getElementById('sign-in-email').value;
+  const password = document.getElementById('sign-in-password').value;
+  
+  if (!email || !password) {
+    showNotification('Please enter email and password', 'error');
+    return;
+  }
+  
+  const result = await authManager.signIn(email, password);
+  if (result.success) {
+    showNotification('Signed in successfully!', 'success');
+  } else {
+    showNotification('Sign in failed: ' + result.error, 'error');
+  }
+}
+
+async function signUp() {
+  const email = document.getElementById('sign-up-email').value;
+  const password = document.getElementById('sign-up-password').value;
+  
+  if (!email || !password) {
+    showNotification('Please enter email and password', 'error');
+    return;
+  }
+  
+  if (password.length < 6) {
+    showNotification('Password must be at least 6 characters', 'error');
+    return;
+  }
+  
+  const result = await authManager.signUp(email, password);
+  if (result.success) {
+    showNotification('Account created successfully! Please check your email for verification.', 'success');
+    showSignIn();
+  } else {
+    showNotification('Sign up failed: ' + result.error, 'error');
+  }
+}
+
+async function signOut() {
+  const result = await authManager.signOut();
+  if (result.success) {
+    showNotification('Signed out successfully!', 'success');
+  }
+}
+
+function showSignIn() {
+  document.getElementById('sign-in-form').style.display = 'block';
+  document.getElementById('sign-up-form').style.display = 'none';
+}
+
+function showSignUp() {
+  document.getElementById('sign-in-form').style.display = 'none';
+  document.getElementById('sign-up-form').style.display = 'block';
+}
+
+function updateAuthUI(user, isAuthenticated) {
+  const authStatus = document.getElementById('auth-status');
+  const authForms = document.getElementById('auth-forms');
+  
+  if (isAuthenticated) {
+    authStatus.innerHTML = `
+      <div class="user-info">
+        <span class="user-email">👤 ${user.email}</span>
+        <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+      </div>
+    `;
+    authForms.style.display = 'none';
+  } else {
+    authStatus.innerHTML = '';
+    authForms.style.display = 'block';
+    showSignIn();
+  }
+}
+
+// Project management functions
+async function createNewProject() {
+  const name = prompt('Enter project name:');
+  if (!name) return;
+  
+  try {
+    const project = await projectManager.createNewProject(name);
+    showNotification('New project created successfully!', 'success');
+    updateCurrentProjectUI(project);
+    await loadUserProjects();
+  } catch (error) {
+    showNotification('Failed to create project: ' + error.message, 'error');
+  }
+}
+
+async function loadUserProjects() {
+  if (!authManager.isUserAuthenticated()) return;
+  
+  try {
+    const projects = await projectManager.loadProjects();
+    renderProjectsList(projects);
+  } catch (error) {
+    console.error('Error loading projects:', error);
+    showNotification('Failed to load projects: ' + error.message, 'error');
+  }
+}
+
+function renderProjectsList(projects) {
+  const projectsList = document.getElementById('projects-list');
+  
+  if (projects.length === 0) {
+    projectsList.innerHTML = `
+      <div class="no-projects">
+        <p>No projects found. Create your first project to get started!</p>
+      </div>
+    `;
+    return;
+  }
+  
+  projectsList.innerHTML = projects.map(project => `
+    <div class="project-item">
+      <div class="project-info">
+        <h4>${project.name}</h4>
+        <p>${project.description || 'No description'}</p>
+        <div class="project-meta">
+          <span>Created: ${new Date(project.created_at).toLocaleDateString()}</span>
+          <span>Updated: ${new Date(project.updated_at).toLocaleDateString()}</span>
+        </div>
+      </div>
+      <div class="project-actions">
+        <button class="load-project-btn" onclick="loadProject('${project.id}')">📂 Load</button>
+        <button class="delete-project-btn" onclick="deleteProject('${project.id}')">🗑️ Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadProject(projectId) {
+  try {
+    await app.loadFromDatabase(projectId);
+    const project = projectManager.getCurrentProject();
+    updateCurrentProjectUI(project);
+    switchTab('parameters');
+  } catch (error) {
+    showNotification('Failed to load project: ' + error.message, 'error');
+  }
+}
+
+async function deleteProject(projectId) {
+  if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    await projectManager.deleteProject(projectId);
+    showNotification('Project deleted successfully!', 'success');
+    await loadUserProjects();
+    
+    // Clear current project UI if it was the deleted project
+    const currentProject = projectManager.getCurrentProject();
+    if (!currentProject || currentProject.id === projectId) {
+      document.getElementById('current-project-info').style.display = 'none';
+    }
+  } catch (error) {
+    showNotification('Failed to delete project: ' + error.message, 'error');
+  }
+}
+
+function updateCurrentProjectUI(project) {
+  const currentProjectInfo = document.getElementById('current-project-info');
+  const currentProjectDetails = document.getElementById('current-project-details');
+  
+  if (project) {
+    currentProjectInfo.style.display = 'block';
+    currentProjectDetails.innerHTML = `
+      <div class="current-project-name">${project.name}</div>
+      <div class="current-project-description">${project.description || 'No description'}</div>
+      <div class="current-project-meta">
+        Last updated: ${new Date(project.updated_at).toLocaleString()}
+      </div>
+    `;
+  } else {
+    currentProjectInfo.style.display = 'none';
+  }
+}
+
+function closeCurrentProject() {
+  projectManager.setCurrentProject(null);
+  updateCurrentProjectUI(null);
+  showNotification('Project closed', 'info');
+}
 
 // Tab switching functionality
 document.addEventListener('click', (e) => {
@@ -560,6 +895,10 @@ function switchTab(tabName) {
     renderTable();
   } else if (tabName === 'profile') {
     updateProfileDrawing();
+  } else if (tabName === 'projects') {
+    if (authManager.isUserAuthenticated()) {
+      loadUserProjects();
+    }
   }
 }
 
