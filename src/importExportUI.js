@@ -332,7 +332,14 @@ export class ImportExportUI {
 
   async loadProjects() {
     try {
-      this.projects = await db.getProjects();
+      // Get the current user from auth service and pass it to db.getProjects
+      const currentUser = await auth.getCurrentUser();
+      if (!currentUser) {
+        console.log('No authenticated user found');
+        return;
+      }
+      
+      this.projects = await db.getProjects(currentUser);
       this.renderProjects();
     } catch (error) {
       console.error('Failed to load projects:', error);

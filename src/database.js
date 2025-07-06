@@ -58,14 +58,15 @@ export class DatabaseService {
     return data;
   }
 
-  async getProjects() {
-    const user = await this.getCurrentUser();
-    if (!user) throw new Error('User not authenticated');
+  async getProjects(user = null) {
+    // Use provided user or get current user
+    const currentUser = user || await this.getCurrentUser();
+    if (!currentUser) throw new Error('User not authenticated');
 
     const { data, error } = await this.supabase
       .from('projects')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', currentUser.id)
       .order('updated_at', { ascending: false });
 
     if (error) throw error;
