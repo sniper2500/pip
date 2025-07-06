@@ -1271,8 +1271,22 @@ function showNotification(message, type = 'info') {
   }, 4000);
 }
 
-// Make showNotification globally available
+// Make functions globally available for onclick handlers
 window.showNotification = showNotification;
+window.generateProfessionalReport = generateProfessionalReport;
+window.recalculateAll = recalculateAll;
+window.saveRecord = saveRecord;
+window.loadRecord = loadRecord;
+window.deleteRecord = deleteRecord;
+window.printRecord = printRecord;
+window.addStructure = addStructure;
+window.deleteStructure = deleteStructure;
+window.sortStructures = sortStructures;
+window.updateSectionName = updateSectionName;
+window.updateStructure = updateStructure;
+window.clearSignature = clearSignature;
+window.saveSignature = saveSignature;
+window.exportProfileImage = exportProfileImage;
 
 // Initialize saved records on load
 renderSavedRecords();
