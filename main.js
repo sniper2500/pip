@@ -2,6 +2,7 @@ import './style.css'
 import { setupCounter } from './counter.js'
 import { ImportExportUI } from './src/importExportUI.js'
 import { auth } from './src/auth.js'
+import { ReportGenerator } from './src/reportGenerator.js'
 
 // Global variables
 let currentTab = 'parameters';
@@ -19,6 +20,9 @@ let savedSignature = null;
 
 // Initialize Import/Export functionality
 let importExportUI;
+
+// Initialize Report Generator
+const reportGenerator = new ReportGenerator();
 
 // Application state management
 const appState = {
@@ -46,6 +50,12 @@ const appState = {
 const app = {
   getCurrentProjectData() {
     return {
+      projectInfo: {
+        sectionName: appState.parameters.sectionName,
+        startStation: appState.parameters.startStation,
+        endStation: appState.parameters.endStation,
+        totalLength: this.calculateDistance(appState.parameters.startStation, appState.parameters.endStation)
+      },
       parameters: appState.parameters,
       structures: appState.structures,
       calculations: this.getCalculations(),
@@ -1217,6 +1227,7 @@ function saveSignature() {
   
   savedSignature = dataURL;
   appState.signature = dataURL;
+  appState.surveyorInfo.signature = dataURL;
   showNotification('Signature saved successfully!', 'success');
 }
 
@@ -1231,49 +1242,20 @@ function exportProfileImage() {
 }
 
 function generateProfessionalReport() {
-  // Create a comprehensive report
-  const reportData = {
-    projectInfo: {
-      sectionName: document.getElementById('sectionName').value,
-      startStation: document.getElementById('startStation').value,
-      endStation: document.getElementById('endStation').value,
-      totalLength: calculateDistance(document.getElementById('startStation').value, document.getElementById('endStation').value)
-    },
-    pipeSpecs: {
-      diameter: document.getElementById('pipeDiameter').value,
-      depth: document.getElementById('pipeDepth').value,
-      slope: document.getElementById('calculatedSlope').value
-    },
-    excavationSpecs: {
-      width: document.getElementById('excavationWidth').value,
-      slopeRatio: document.getElementById('slopeRatio').value
-    },
-    levels: {
-      groundStart: document.getElementById('groundLevelStart').value,
-      groundEnd: document.getElementById('groundLevelEnd').value,
-      pipeStart: document.getElementById('pipeLevelStart').value,
-      pipeEnd: document.getElementById('pipeLevelEnd').value
-    },
-    surveyor: {
-      name: document.getElementById('surveyor-name').value,
-      title: document.getElementById('surveyor-title').value,
-      company: document.getElementById('surveyor-company').value,
-      phone: document.getElementById('surveyor-phone').value,
-      email: document.getElementById('surveyor-email').value,
-      license: document.getElementById('surveyor-license').value
-    },
-    structures: structures,
-    timestamp: new Date().toISOString()
-  };
-  
-  // For now, just save as JSON (could be enhanced to generate PDF)
-  const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `${reportData.projectInfo.sectionName}-professional-report.json`;
-  link.click();
-  
-  showNotification('Professional report generated successfully!', 'success');
+  try {
+    // Get current project data
+    const currentData = app.getCurrentProjectData();
+    
+    // Generate the professional report
+    const reportWindow = reportGenerator.generateProfessionalReport(currentData);
+    
+    showNotification('Professional report generated successfully!', 'success');
+    
+    return reportWindow;
+  } catch (error) {
+    console.error('Report generation failed:', error);
+    showNotification(`Report generation failed: ${error.message}`, 'error');
+  }
 }
 
 // Notification system
