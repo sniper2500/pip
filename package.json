@@ -10,9 +10,5 @@
   },
   "devDependencies": {
     "vite": "^5.4.2"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.50.3",
-    "xlsx": "^0.18.5"
   }
 }
